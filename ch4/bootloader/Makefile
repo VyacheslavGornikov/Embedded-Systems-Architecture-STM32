@@ -22,7 +22,9 @@ app.elf: startup_$(MODEL).o app.ld
 	$(LD) $(LDFLAGS) -T app.ld startup_$(MODEL).o -o $@ -Map=app.map
 
 bootloader.elf: startup_$(MODEL)_bl.o utils.o bootloader.ld
-	$(LD) $(LDFLAGS) -T bootloader.ld startup_$(MODEL)_bl.o -o $@ -Map=bootloader.map
+	$(LD) $(LDFLAGS) -T bootloader.ld startup_$(MODEL)_bl.o utils.o -o $@ -Map=bootloader.map
+
+startup_$(MODEL)_bl.o: CFLAGS += -DBOOTLOADER
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

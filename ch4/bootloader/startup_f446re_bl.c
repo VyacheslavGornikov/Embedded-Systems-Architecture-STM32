@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include "utils.h"
 
-#define BOOTLOADER
-
 // ========== ОБЪЯВЛЕНИЯ СИМВОЛОВ ЛИНКЕРА ==========
 extern uint32_t *END_STACK;
 extern uint32_t _stored_data;
@@ -48,26 +46,33 @@ void isr_empty(void)
 
 void main(void) {
     const uint32_t * const app_IV = (const uint32_t*)APP_ADDR;
-    void *app_entry;
+    void (*app_entry)(void);
     uint32_t app_end_stack;
 
-    /* Disable interrupts */
+    app_end_stack = (*((uint32_t*)(APP_ADDR)));
+    app_entry = (void (*)(void))(*((uint32_t*)(APP_ADDR + 4)));
+
+    utils_open();
+    utils_close();
+
+    /* Disable interrupts before handing control to the application. */
     asm volatile("cpsid i");
 
-    /* Update IV */
+    /* Switch exception vectors to the application image. */
     VTOR = (uint32_t)app_IV;
+    asm volatile("dsb");
+    asm volatile("isb");
 
-    app_end_stack = (*((uint32_t*)(APP_ADDR)));
-    app_entry = (void*)(*((uint32_t*)(APP_ADDR + 4)));
+    /* Install the application's stack and branch in Thumb state. */
+    asm volatile(
+        "msr msp, %0\n"
+        "bx %1\n"
+        :
+        : "r"(app_end_stack), "r"(app_entry)
+        : "memory"
+    );
 
-    // utils_open();
-    // utils_close();
-
-    /* Update stack pointer */
-    asm volatile("msr msp, %0" ::"r"(app_end_stack));
-
-    /* Unconditionally jump to app_entry */
-    asm volatile("mov pc, %0" ::"r"(app_entry));
+    while (1) ;;
 }
 
 __attribute__ ((section(".isr_vector")))
