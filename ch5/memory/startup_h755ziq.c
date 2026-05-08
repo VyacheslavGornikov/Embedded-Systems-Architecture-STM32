@@ -1,7 +1,9 @@
 #include <stdint.h>
 
 // ========== ОБЪЯВЛЕНИЯ СИМВОЛОВ ЛИНКЕРА ==========
-extern uint32_t *END_STACK;
+extern uint32_t _end_stack;
+extern uint32_t _start_stack;
+extern uint32_t _stack_size;
 extern uint32_t _stored_data;
 extern uint32_t _start_data;
 extern uint32_t _end_data;
@@ -12,8 +14,18 @@ extern uint32_t _end_bss;
 static int zeroed_variable_in_bss;           // Будет в .bss
 static int initialized_variable_in_data = 42; // Будет в .data
 
+// ========== ПЕРЕМЕННЫЕ ДЛЯ ОТЛАДКИ В GDB ==========
+volatile uint32_t gdb_sp_value = 0;
+volatile uint32_t gdb_stack_bottom = 0;
+volatile uint32_t gdb_stack_top = 0;
+volatile uint32_t gdb_stack_used = 0;
+volatile uint32_t gdb_stack_free = 0;
+
 void main(void);
 void isr_reset(void) {
+    // Установка указателя стека на DTCM
+    __asm volatile ("MSR MSP, %0" : : "r" (&_end_stack));
+
     unsigned int *src, *dst;
     src = (unsigned int*)&_stored_data;
     dst = (unsigned int*)&_start_data;
@@ -50,9 +62,19 @@ void __attribute__((used, noreturn)) main(void) {
         zeroed_variable_in_bss++;
         initialized_variable_in_data++;
 
+        register uint32_t sp asm("sp");
+        gdb_sp_value = sp;
+        gdb_stack_bottom = (uint32_t)&_start_stack;
+        gdb_stack_top = (uint32_t)&_end_stack;
+        gdb_stack_used = gdb_stack_top - sp;
+        gdb_stack_free = sp - gdb_stack_bottom;
         // Можно добавить условие (как в книге, но без utils_*)
-        if ((zeroed_variable_in_bss % 1000) == 0) {
+        if ((zeroed_variable_in_bss % 10) == 0) {
             // asm volatile("svc 0");  // Триггерим SVC (опционально)
+            register uint32_t current_sp asm("sp");
+            gdb_sp_value = current_sp;
+            gdb_stack_used = gdb_stack_top - current_sp;
+            gdb_stack_free = current_sp - gdb_stack_bottom;
         }
     }
 }
@@ -64,7 +86,7 @@ void (* const IV[])(void) =
         // 0x0000 0000 - Начальное значение SP
     /* ===================== SYSTEM EXCEPTIONS ===================== */
 
-    (void (*)(void))(&END_STACK),      // 0  - Initial Stack Pointer
+    (void (*)(void))(&_end_stack),      // 0  - Initial Stack Pointer
     isr_reset,              // 1  - Reset
     isr_fault,              // 2  - NMI
     isr_fault,              // 3  - HardFault

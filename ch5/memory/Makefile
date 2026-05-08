@@ -17,5 +17,9 @@ image.elf: startup_$(MODEL).o $(LD_TARGET)
 
 startup_$(MODEL).o: startup_$(MODEL).c
 
+rebuild:
+	make clean
+	make
+
 clean:
 	rm -rf image.bin image.elf image.map *.o

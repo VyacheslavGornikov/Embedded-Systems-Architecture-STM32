@@ -1,8 +1,11 @@
 MEMORY
 {
     FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 1024K
-    RAM (rwx) : ORIGIN = 0x24000000 , LENGTH = 512K
+    AXI_SRAM (rwx) : ORIGIN = 0x24000000 , LENGTH = 512K
+    DTCM (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
+
+_stack_size = 16 * 1024;
 
 SECTIONS
 {
@@ -23,7 +26,7 @@ SECTIONS
         *(.data*)
         . = ALIGN(4);
         _end_data = .;
-    } > RAM
+    } > AXI_SRAM
 
     .bss :
     {
@@ -32,7 +35,16 @@ SECTIONS
         . = ALIGN(4);
         _end_bss = .;
         _end = .;
-    } > RAM
+    } > AXI_SRAM
+
+    .stack :
+    {
+        . = ORIGIN(DTCM) + LENGTH(DTCM) - _stack_size;
+        . = ALIGN(8);
+        _start_stack = .;
+        _end_stack = _start_stack + _stack_size;
+    } > DTCM
 }
 
-END_STACK = ORIGIN(RAM) + LENGTH(RAM);
+/* Проверка, что не вышли за границы DTCM */
+ASSERT(_end_stack <= ORIGIN(DTCM) + LENGTH(DTCM), "Stack exceeds DTCM!")
