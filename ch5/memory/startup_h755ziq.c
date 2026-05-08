@@ -1,9 +1,8 @@
 #include <stdint.h>
-
+#define STACK_PATTERN 0xDEADC0DE
 // ========== ОБЪЯВЛЕНИЯ СИМВОЛОВ ЛИНКЕРА ==========
 extern uint32_t _end_stack;
 extern uint32_t _start_stack;
-extern uint32_t _stack_size;
 extern uint32_t _stored_data;
 extern uint32_t _start_data;
 extern uint32_t _end_data;
@@ -41,6 +40,14 @@ void isr_reset(void) {
         *dst = 0;
         dst++;
     }
+
+     /* Stack painting */
+    dst = (unsigned int*)&_start_stack;
+    while (dst < (unsigned int*)&_end_stack) {
+        *dst = STACK_PATTERN;
+        dst++;
+    }
+
     main();
 }
 
@@ -57,6 +64,22 @@ void isr_empty(void) {
     /* empty */
 }
 
+uint32_t get_stack_usage(void) {
+    // Правильно: берем АДРЕС переменной _start_stack
+    uint32_t *ptr = (uint32_t*)&_start_stack;
+    uint32_t *end = (uint32_t*)&_end_stack;
+    uint32_t total = (end - ptr) * sizeof(uint32_t);
+    uint32_t free = 0;
+
+    while (ptr < end && *ptr == STACK_PATTERN) {
+        free += sizeof(uint32_t);
+        ptr++;
+    }
+
+
+    return total - free;
+}
+
 void __attribute__((used, noreturn)) main(void) {
     while(1) {
         zeroed_variable_in_bss++;
@@ -70,11 +93,13 @@ void __attribute__((used, noreturn)) main(void) {
         gdb_stack_free = sp - gdb_stack_bottom;
         // Можно добавить условие (как в книге, но без utils_*)
         if ((zeroed_variable_in_bss % 10) == 0) {
+
             // asm volatile("svc 0");  // Триггерим SVC (опционально)
             register uint32_t current_sp asm("sp");
             gdb_sp_value = current_sp;
             gdb_stack_used = gdb_stack_top - current_sp;
             gdb_stack_free = current_sp - gdb_stack_bottom;
+            gdb_stack_used = get_stack_usage();
         }
     }
 }
