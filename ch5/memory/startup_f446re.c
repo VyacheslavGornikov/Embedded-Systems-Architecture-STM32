@@ -9,10 +9,10 @@ extern uint32_t _start_bss;
 extern uint32_t _end_bss;
 
 // ========== ПЕРЕМЕННЫЕ В DATA И BSS ==========
-static int zeroed_variable_in_bss;           // Будет в .bss
-static int initialized_variable_in_data = 42; // Будет в .data
+// static int zeroed_variable_in_bss;           // Будет в .bss
+// static int initialized_variable_in_data = 42; // Будет в .data
 
-void main(void);
+extern void main(void);
 void isr_reset(void) {
     unsigned int *src, *dst;
     src = (unsigned int*)&_stored_data;
@@ -37,6 +37,21 @@ void isr_fault(void) {
     while (1);
 }
 
+void isr_memfault(void) {
+    /* Panic! */
+    while (1);
+}
+
+void isr_busfault(void) {
+    /* Panic! */
+    while (1);
+}
+
+void isr_usagefault(void) {
+    /* Panic! */
+    while (1);
+}
+
 void isr_svc(void) {
     /* empty */
 }
@@ -45,17 +60,17 @@ void isr_empty(void) {
     /* empty */
 }
 
-void __attribute__((used, noreturn)) main(void) {
-    while(1) {
-        zeroed_variable_in_bss++;
-        initialized_variable_in_data++;
+// void __attribute__((used, noreturn)) main(void) {
+//     while(1) {
+//         zeroed_variable_in_bss++;
+//         initialized_variable_in_data++;
 
-        // Можно добавить условие (как в книге, но без utils_*)
-        if ((zeroed_variable_in_bss % 1000) == 0) {
-            // asm volatile("svc 0");  // Триггерим SVC (опционально)
-        }
-    }
-}
+//         // Можно добавить условие (как в книге, но без utils_*)
+//         if ((zeroed_variable_in_bss % 1000) == 0) {
+//             // asm volatile("svc 0");  // Триггерим SVC (опционально)
+//         }
+//     }
+// }
 
 __attribute__ ((section(".isr_vector")))
 void (* const IV[])(void) =
@@ -65,9 +80,9 @@ void (* const IV[])(void) =
     isr_reset,                     // 0x0000 0004 - Reset
     isr_fault,                     // 0x0000 0008 - NMI
     isr_fault,                     // 0x0000 000C - HardFault
-    isr_fault,                     // 0x0000 0010 - MemManage
-    isr_fault,                     // 0x0000 0014 - BusFault
-    isr_fault,                     // 0x0000 0018 - UsageFault
+    isr_memfault,                  // 0x0000 0010 - MemManage
+    isr_busfault,                  // 0x0000 0014 - BusFault
+    isr_usagefault,                // 0x0000 0018 - UsageFault
     0, 0, 0, 0,                    // 0x0000 001C-002B - 4x reserved
     isr_svc,                       // 0x0000 002C - SVCall
     isr_empty,                     // 0x0000 0030 - Debug Monitor

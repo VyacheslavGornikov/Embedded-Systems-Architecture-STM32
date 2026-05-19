@@ -35,5 +35,7 @@ SECTIONS
     } > RAM
 }
 
+_stack_size = 1024 * 16;
 _start_heap = _end;
+_end_heap = ORIGIN(RAM) + LENGTH(RAM) - _stack_size;
 END_STACK = ORIGIN(RAM) + LENGTH(RAM);

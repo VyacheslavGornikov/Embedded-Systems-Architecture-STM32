@@ -1,4 +1,5 @@
 extern unsigned int _start_heap;
+extern unsigned int _end_heap;
 #define NULL (((void *)0))
 
 #ifdef OWN_MALLOC
@@ -35,7 +36,7 @@ void *malloc(unsigned int size) {
             return ret;
         }
 
-        blk = ((char*)blk) + sizeof(struct malloc_block) + blk->size;
+        blk = (struct malloc_block*)(((char*)blk) + sizeof(struct malloc_block) + blk->size);
     }
 
     /* Если не нашли, выделяем блок нужного размера в конце кучи */
@@ -57,4 +58,20 @@ void free(void *ptr) {
     blk->signature = SIGNATURE_FREED;
 }
 
+#else
+void * _sbrk(unsigned int incr) {
+    static unsigned char *heap = NULL;
+    void *old_heap = heap;
+
+    if(((incr >> 2) << 2) != incr)
+        incr = ((incr >> 2) + 1) << 2;
+
+    if(old_heap == NULL)
+        old_heap = heap = (unsigned char*)&_start_heap;
+    if((heap + incr) >= (unsigned char*)&_end_heap)
+        return (void*)(-1);
+    else
+        heap += incr;
+    return old_heap;
+}
 #endif
