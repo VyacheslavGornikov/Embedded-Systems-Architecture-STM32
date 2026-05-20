@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 // ========== ОБЪЯВЛЕНИЯ СИМВОЛОВ ЛИНКЕРА ==========
-extern uint32_t *END_STACK;
+extern uint32_t _end_stack;
 extern uint32_t _stored_data;
 extern uint32_t _start_data;
 extern uint32_t _end_data;
@@ -29,6 +29,7 @@ void isr_reset(void) {
         *dst = 0;
         dst++;
     }
+
     main();
 }
 
@@ -76,7 +77,7 @@ __attribute__ ((section(".isr_vector")))
 void (* const IV[])(void) =
 {
     // ========== 1. СИСТЕМНЫЕ ИСКЛЮЧЕНИЯ ==========
-    (void (*)(void))(&END_STACK),    // 0x0000 0000 - Начальное значение SP
+    (void (*)(void))(&_end_stack),    // 0x0000 0000 - Начальное значение SP
     isr_reset,                     // 0x0000 0004 - Reset
     isr_fault,                     // 0x0000 0008 - NMI
     isr_fault,                     // 0x0000 000C - HardFault

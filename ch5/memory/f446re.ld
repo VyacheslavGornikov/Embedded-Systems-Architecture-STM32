@@ -35,7 +35,18 @@ SECTIONS
     } > RAM
 }
 
-_stack_size = 1024 * 16;
+_stack_size = 16K;
+_mpu_size   = 4K;
+
+/* top of RAM */
+_end_stack = ORIGIN(RAM) + LENGTH(RAM);
+
+/* lowest valid stack address */
+_bottom_stack = _end_stack - _stack_size;
+
+/* MPU guard region */
+_start_guard = _bottom_stack - _mpu_size;
+
+/* heap area */
 _start_heap = _end;
-_end_heap = ORIGIN(RAM) + LENGTH(RAM) - _stack_size;
-END_STACK = ORIGIN(RAM) + LENGTH(RAM);
+_end_heap   = _start_guard;

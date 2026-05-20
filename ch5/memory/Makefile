@@ -13,7 +13,7 @@ CFLAGS = -mthumb -mcpu=cortex-m4 -g -ggdb -Wall -Wextra -Wno-main -Wno-unused -f
 LDFLAGS = -T $(LD_TARGET) -Wl,-gc-sections -Wl,-Map=image.map -nostartfiles -mthumb -mcpu=cortex-m4
 
 # Объектные файлы (линкер-скрипт НЕ включаем в OBJS)
-OBJS = startup_$(MODEL).o main.o malloc.o
+OBJS = startup_$(MODEL).o main.o malloc.o mpu.o
 
 all: image.bin
 

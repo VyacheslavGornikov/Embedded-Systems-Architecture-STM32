@@ -23,11 +23,11 @@ void fn0(void)
 
 }
 
-
-//extern int mpu_enable(void);
+extern int mpu_enable(void);
 
 void main(void) {
-    //mpu_enable();
+    mpu_enable();
+
     fn0();
 
     while(1);;
