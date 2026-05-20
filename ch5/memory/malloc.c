@@ -59,6 +59,9 @@ void free(void *ptr) {
 }
 
 #else
+
+
+// ========== _SBRK (простая версия) ==========
 void * _sbrk(unsigned int incr) {
     static unsigned char *heap = NULL;
     void *old_heap = heap;
@@ -74,4 +77,24 @@ void * _sbrk(unsigned int incr) {
         heap += incr;
     return old_heap;
 }
+
+// ========== _SBRK_R (reentrant версия для newlib) ==========
+void * _sbrk_r(struct _reent *ptr, unsigned int incr)
+{
+    static unsigned char *heap = NULL;
+    void *old_heap = heap;
+
+    (void)ptr;  // Не используется, но нужен для совместимости
+
+    if (((incr >> 2) << 2) != incr)
+        incr = ((incr >> 2) + 1) << 2;
+
+    if (old_heap == NULL)
+        old_heap = heap = (unsigned char *)&_start_heap;
+    else
+        heap += incr;
+
+    return old_heap;
+}
+
 #endif
